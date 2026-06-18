@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมจับคู่น่ารัก 🐱</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff5f8;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem}
+  .wrap{width:100%;max-width:520px}
+  h1{text-align:center;font-size:22px;font-weight:700;color:#d4537e;margin-bottom:1.25rem}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:12px;flex-wrap:wrap}
+  .stats{display:flex;gap:8px}
+  .stat{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:5px 12px;font-size:13px;color:#993556}
+  .stat b{color:#72243e;font-weight:600}
+  .btn-new{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:#993556;display:flex;align-items:center;gap:6px;font-weight:500}
+  .btn-new:hover{background:#fbeaf0}
+  .diff-row{display:flex;gap:8px;margin-bottom:.75rem}
+  .diff-btn{flex:1;background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:7px 4px;font-size:12px;cursor:pointer;color:#aaa;transition:all .15s;line-height:1.5;font-weight:500}
+  .diff-btn.active{border-color:#d4537e;color:#993556;background:#fbeaf0}
+  .diff-btn:hover:not(.active){background:#fff5f8}
+  .grid{display:grid;gap:8px}
+  .card{background:#fbeaf0;border:1.5px solid #f4c0d1;border-radius:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,background .15s;user-select:none;position:relative;overflow:hidden}
+  .card:hover:not(.flipped):not(.matched){background:#fff;border-color:#d4537e;transform:scale(1.06)}
+  .card.flipped,.card.matched{background:#fff;border-color:#ed93b1}
+  .card.matched{background:#eaf3de;border-color:#97c459}
+  .card.wrong{background:#fcebeb;border-color:#f09595;animation:shake .3s ease}
+  .card-emoji{font-size:34px;opacity:0;transition:opacity .15s;pointer-events:none;line-height:1}
+  .card.flipped .card-emoji,.card.matched .card-emoji{opacity:1}
+  .card-back{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;transition:opacity .15s;pointer-events:none}
+  .card.flipped .card-back,.card.matched .card-back{opacity:0}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+  .card.matched{animation:pop .3s ease}
+  .win-banner{background:#eaf3de;border:1.5px solid #97c459;border-radius:14px;padding:1.5rem;text-align:center;margin-top:1rem;display:none}
+  .win-banner.show{display:block}
+  .win-title{font-size:26px;font-weight:700;color:#27500a;margin-bottom:6px}
+  .win-sub{font-size:14px;color:#3b6d11;margin-bottom:14px}
+  .play-again{background:#3b6d11;color:white;border:none;border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer;font-weight:600}
+  .play-again:hover{background:#27500a}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐱 เกมจับคู่น่ารัก</h1>
+
+  <div class="topbar">
+    <div class="stats">
+      <div class="stat">คู่: <b id="pairs">0</b>/<span id="total">0</span></div>
+      <div class="stat">พลิก: <b id="flips">0</b></div>
+      <div class="stat">⏱ <b id="timer">0:00</b></div>
+    </div>
+    <button class="btn-new" onclick="startGame()">🔄 เริ่มใหม่</button>
+  </div>
+
+  <div class="diff-row">
+    <button class="diff-btn active" onclick="setDiff(8,this)">ง่าย<br>8 คู่</button>
+    <button class="diff-btn" onclick="setDiff(10,this)">กลาง<br>10 คู่</button>
+    <button class="diff-btn" onclick="setDiff(14,this)">ยาก<br>14 คู่</button>
+    <button class="diff-btn" onclick="setDiff(18,this)">โหด<br>18 คู่</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="win-banner" id="winBanner">
+    <div class="win-title">🎉 ชนะแล้ว!</div>
+    <div class="win-sub" id="winSub"></div>
+    <button class="play-again" onclick="startGame()">เล่นอีกรอบ 🐾</button>
+  </div>
+</div>
+
+<script>
+const EMOJIS=[
+  '🐱','🐶','🐰','🐼','🐨','🐸','🦊','🐷',
+  '🐻','🐯','🦁','🐮','🐙','🦋','🐬','🦄',
+  '🐧','🦜','🐢','🦔','🐳','🦀','🐝','🦭',
+  '🐥','🦩','🐡','🦦','🐠','🦌'
+];
+const BACKS=['🌟','⭐','✨','💫','🌈'];
+let numPairs=8,flipped=[],matched=[],flipCount=0,timerInterval=null,startTime=null,locked=false;
+
+function setDiff(n,btn){
+  numPairs=n;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  startGame();
+}
+
+function startGame(){
+  clearInterval(timerInterval);
+  flipped=[];matched=[];flipCount=0;locked=false;startTime=null;
+  document.getElementById('flips').textContent='0';
+  document.getElementById('timer').textContent='0:00';
+  document.getElementById('winBanner').classList.remove('show');
+  document.getElementById('total').textContent=numPairs;
+  document.getElementById('pairs').textContent='0';
+
+  const cols=numPairs<=8?4:numPairs<=10?4:5;
+  const grid=document.getElementById('grid');
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+
+  const chosen=EMOJIS.slice(0,numPairs);
+  const deck=[...chosen,...chosen].sort(()=>Math.random()-.5);
+
+  grid.innerHTML='';
+  deck.forEach((emoji)=>{
+    const card=document.createElement('div');
+    card.className='card';
+    card.dataset.emoji=emoji;
+    const back=BACKS[Math.floor(Math.random()*BACKS.length)];
+    card.innerHTML=`<span class="card-emoji">${emoji}</span><span class="card-back">${back}</span>`;
+    card.addEventListener('click',()=>flipCard(card));
+    grid.appendChild(card);
+  });
+}
+
+function flipCard(card){
+  if(locked||card.classList.contains('flipped')||card.classList.contains('matched')) return;
+  if(!startTime){
+    startTime=Date.now();
+    timerInterval=setInterval(updateTimer,500);
+  }
+  card.classList.add('flipped');
+  flipped.push(card);
+  flipCount++;
+  document.getElementById('flips').textContent=flipCount;
+  if(flipped.length===2) checkMatch();
+}
+
+function checkMatch(){
+  locked=true;
+  const [a,b]=flipped;
+  if(a.dataset.emoji===b.dataset.emoji){
+    a.classList.add('matched');b.classList.add('matched');
+    matched.push(a,b);flipped=[];locked=false;
+    document.getElementById('pairs').textContent=matched.length/2;
+    if(matched.length===numPairs*2) win();
+  } else {
+    a.classList.add('wrong');b.classList.add('wrong');
+    setTimeout(()=>{
+      a.classList.remove('flipped','wrong');
+      b.classList.remove('flipped','wrong');
+      flipped=[];locked=false;
+    },900);
+  }
+}
+
+function updateTimer(){
+  if(!startTime) return;
+  const s=Math.floor((Date.now()-startTime)/1000);
+  document.getElementById('timer').textContent=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
+}
+
+function win(){
+  clearInterval(timerInterval);
+  const s=Math.floor((Date.now()-startTime)/1000);
+  const timeStr=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
+  document.getElementById('winSub').textContent=`${numPairs} คู่ · พลิก ${flipCount} ครั้ง · เวลา ${timeStr}`;
+  document.getElementById('winBanner').classList.add('show');
+}
+
+startGame();
+</script>
+</body>
+</html>
