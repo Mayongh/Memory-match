@@ -1,3 +1,6 @@
+bash
+
+cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -5,79 +8,159 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>เกมจับคู่น่ารัก 🐱</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff5f8;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem}
-  .wrap{width:100%;max-width:520px}
-  h1{text-align:center;font-size:22px;font-weight:700;color:#d4537e;margin-bottom:1.25rem}
-  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:12px;flex-wrap:wrap}
-  .stats{display:flex;gap:8px}
-  .stat{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:5px 12px;font-size:13px;color:#993556}
-  .stat b{color:#72243e;font-weight:600}
-  .btn-new{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:#993556;display:flex;align-items:center;gap:6px;font-weight:500}
-  .btn-new:hover{background:#fbeaf0}
-  .diff-row{display:flex;gap:8px;margin-bottom:.75rem}
-  .diff-btn{flex:1;background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:7px 4px;font-size:12px;cursor:pointer;color:#aaa;transition:all .15s;line-height:1.5;font-weight:500}
-  .diff-btn.active{border-color:#d4537e;color:#993556;background:#fbeaf0}
-  .diff-btn:hover:not(.active){background:#fff5f8}
-  .grid{display:grid;gap:8px}
-  .card{background:#fbeaf0;border:1.5px solid #f4c0d1;border-radius:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,background .15s;user-select:none;position:relative;overflow:hidden}
-  .card:hover:not(.flipped):not(.matched){background:#fff;border-color:#d4537e;transform:scale(1.06)}
-  .card.flipped,.card.matched{background:#fff;border-color:#ed93b1}
-  .card.matched{background:#eaf3de;border-color:#97c459}
-  .card.wrong{background:#fcebeb;border-color:#f09595;animation:shake .3s ease}
-  .card-emoji{font-size:34px;opacity:0;transition:opacity .15s;pointer-events:none;line-height:1}
-  .card.flipped .card-emoji,.card.matched .card-emoji{opacity:1}
-  .card-back{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;transition:opacity .15s;pointer-events:none}
-  .card.flipped .card-back,.card.matched .card-back{opacity:0}
-  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-  @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
-  .card.matched{animation:pop .3s ease}
-  .win-banner{background:#eaf3de;border:1.5px solid #97c459;border-radius:14px;padding:1.5rem;text-align:center;margin-top:1rem;display:none}
-  .win-banner.show{display:block}
-  .win-title{font-size:26px;font-weight:700;color:#27500a;margin-bottom:6px}
-  .win-sub{font-size:14px;color:#3b6d11;margin-bottom:14px}
-  .play-again{background:#3b6d11;color:white;border:none;border-radius:8px;padding:9px 24px;font-size:14px;cursor:pointer;font-weight:600}
-  .play-again:hover{background:#27500a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff5f8;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem}
+.wrap{width:100%;max-width:520px}
+.screen{display:none}
+.screen.active{display:block}
+
+.login-box{background:#fff;border:1px solid #f4c0d1;border-radius:16px;padding:2rem;text-align:center;margin-top:1rem}
+.login-title{font-size:30px;margin-bottom:4px}
+.login-sub{font-size:14px;color:#999;margin-bottom:1.5rem}
+.name-input{width:100%;padding:10px 14px;font-size:15px;border:1px solid #f4c0d1;border-radius:10px;margin-bottom:10px;outline:none;font-family:inherit}
+.name-input:focus{border-color:#d4537e}
+.btn-start{width:100%;background:#d4537e;color:white;border:none;border-radius:10px;padding:12px;font-size:15px;cursor:pointer;font-weight:600}
+.btn-start:hover{background:#993556}
+.btn-rank-link{background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;margin-top:10px;text-decoration:underline}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;gap:8px;flex-wrap:wrap}
+.stats{display:flex;gap:6px;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:4px 10px;font-size:12px;color:#993556}
+.stat b{color:#72243e;font-weight:600}
+.top-btns{display:flex;gap:6px}
+.btn-sm{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;color:#993556}
+.btn-sm:hover{background:#fbeaf0}
+
+.diff-row{display:flex;gap:6px;margin-bottom:.75rem}
+.diff-btn{flex:1;background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:6px 4px;font-size:11px;cursor:pointer;color:#bbb;line-height:1.5;font-weight:600}
+.diff-btn.active{border-color:#d4537e;color:#993556;background:#fbeaf0}
+.diff-btn:hover:not(.active){background:#fff5f8}
+
+.grid{display:grid;gap:7px}
+.card{background:#fbeaf0;border:1.5px solid #f4c0d1;border-radius:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s,background .15s;user-select:none;position:relative;overflow:hidden}
+.card:hover:not(.flipped):not(.matched){background:#fff;border-color:#d4537e;transform:scale(1.06)}
+.card.flipped,.card.matched{background:#fff;border-color:#ed93b1}
+.card.matched{background:#eaf3de;border-color:#97c459}
+.card.wrong{background:#fcebeb;border-color:#f09595;animation:shake .3s ease}
+.card-emoji{font-size:30px;opacity:0;transition:opacity .15s;pointer-events:none;line-height:1}
+.card.flipped .card-emoji,.card.matched .card-emoji{opacity:1}
+.card-back{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;transition:opacity .15s;pointer-events:none}
+.card.flipped .card-back,.card.matched .card-back{opacity:0}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.card.matched{animation:pop .3s ease}
+
+.win-banner{background:#eaf3de;border:1px solid #97c459;border-radius:14px;padding:1.25rem;text-align:center;margin-top:1rem;display:none}
+.win-banner.show{display:block}
+.win-title{font-size:22px;font-weight:700;color:#27500a;margin-bottom:4px}
+.win-sub{font-size:13px;color:#3b6d11;margin-bottom:12px}
+.win-btns{display:flex;gap:8px;justify-content:center}
+.btn-again{background:#3b6d11;color:white;border:none;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;font-weight:600}
+.btn-again:hover{background:#27500a}
+.btn-rank{background:#fff;border:1px solid #97c459;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;color:#3b6d11;font-weight:600}
+.btn-rank:hover{background:#eaf3de}
+
+.rank-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;margin-top:.5rem}
+.rank-title{font-size:20px;font-weight:700;color:#333}
+.rank-filter{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.filt-btn{background:#fff;border:1px solid #f4c0d1;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#aaa;font-weight:500}
+.filt-btn.active{border-color:#d4537e;color:#993556;background:#fbeaf0}
+.rank-list{display:flex;flex-direction:column;gap:6px}
+.rank-row{background:#fff;border:1px solid #eee;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px}
+.rank-row.me{border-color:#d4537e;background:#fbeaf0}
+.rank-num{font-size:18px;min-width:28px;text-align:center}
+.rank-name{flex:1;font-size:14px;font-weight:600;color:#333}
+.rank-diff{font-size:11px;color:#999;background:#f5f5f5;padding:2px 8px;border-radius:99px}
+.rank-score{text-align:right}
+.rank-time{font-size:13px;font-weight:600;color:#333}
+.rank-flips{font-size:11px;color:#aaa}
+.empty-rank{text-align:center;color:#bbb;font-size:14px;padding:2.5rem 0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🐱 เกมจับคู่น่ารัก</h1>
 
-  <div class="topbar">
-    <div class="stats">
-      <div class="stat">คู่: <b id="pairs">0</b>/<span id="total">0</span></div>
-      <div class="stat">พลิก: <b id="flips">0</b></div>
-      <div class="stat">⏱ <b id="timer">0:00</b></div>
+  <div id="loginScreen" class="screen active">
+    <div class="login-box">
+      <div class="login-title">🐱 เกมจับคู่น่ารัก</div>
+      <div class="login-sub">ใส่ชื่อของคุณเพื่อเริ่มเล่น</div>
+      <input class="name-input" id="nameInput" type="text" placeholder="ชื่อผู้เล่น..." maxlength="20"/>
+      <button class="btn-start" onclick="doLogin()">เริ่มเล่นเลย 🎮</button>
+      <br>
+      <button class="btn-rank-link" onclick="showRanking()">ดู Ranking 🏆</button>
     </div>
-    <button class="btn-new" onclick="startGame()">🔄 เริ่มใหม่</button>
   </div>
 
-  <div class="diff-row">
-    <button class="diff-btn active" onclick="setDiff(8,this)">ง่าย<br>8 คู่</button>
-    <button class="diff-btn" onclick="setDiff(10,this)">กลาง<br>10 คู่</button>
-    <button class="diff-btn" onclick="setDiff(14,this)">ยาก<br>14 คู่</button>
-    <button class="diff-btn" onclick="setDiff(18,this)">โหด<br>18 คู่</button>
+  <div id="gameScreen" class="screen">
+    <div class="topbar">
+      <div class="stats">
+        <div class="stat">👤 <b id="playerName">-</b></div>
+        <div class="stat">คู่: <b id="pairs">0</b>/<span id="total">0</span></div>
+        <div class="stat">พลิก: <b id="flips">0</b></div>
+        <div class="stat">⏱ <b id="timer">0:00</b></div>
+      </div>
+      <div class="top-btns">
+        <button class="btn-sm" onclick="startGame()" title="เริ่มใหม่">🔄</button>
+        <button class="btn-sm" onclick="showRanking()" title="Ranking">🏆</button>
+        <button class="btn-sm" onclick="showLogin()" title="เปลี่ยนชื่อ">👤</button>
+      </div>
+    </div>
+    <div class="diff-row">
+      <button class="diff-btn active" onclick="setDiff(8,this)">ง่าย<br>8 คู่</button>
+      <button class="diff-btn" onclick="setDiff(10,this)">กลาง<br>10 คู่</button>
+      <button class="diff-btn" onclick="setDiff(14,this)">ยาก<br>14 คู่</button>
+      <button class="diff-btn" onclick="setDiff(18,this)">โหด<br>18 คู่</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="win-banner" id="winBanner">
+      <div class="win-title">🎉 ชนะแล้ว!</div>
+      <div class="win-sub" id="winSub"></div>
+      <div class="win-btns">
+        <button class="btn-again" onclick="startGame()">เล่นอีกรอบ 🐾</button>
+        <button class="btn-rank" onclick="showRanking()">ดู Ranking 🏆</button>
+      </div>
+    </div>
   </div>
 
-  <div class="grid" id="grid"></div>
-
-  <div class="win-banner" id="winBanner">
-    <div class="win-title">🎉 ชนะแล้ว!</div>
-    <div class="win-sub" id="winSub"></div>
-    <button class="play-again" onclick="startGame()">เล่นอีกรอบ 🐾</button>
+  <div id="rankScreen" class="screen">
+    <div class="rank-header">
+      <div class="rank-title">🏆 Ranking</div>
+      <button class="btn-sm" onclick="backFromRank()">← กลับ</button>
+    </div>
+    <div class="rank-filter">
+      <button class="filt-btn active" onclick="setFilter('all',this)">ทั้งหมด</button>
+      <button class="filt-btn" onclick="setFilter(8,this)">ง่าย</button>
+      <button class="filt-btn" onclick="setFilter(10,this)">กลาง</button>
+      <button class="filt-btn" onclick="setFilter(14,this)">ยาก</button>
+      <button class="filt-btn" onclick="setFilter(18,this)">โหด</button>
+    </div>
+    <div class="rank-list" id="rankList"></div>
   </div>
+
 </div>
-
 <script>
-const EMOJIS=[
-  '🐱','🐶','🐰','🐼','🐨','🐸','🦊','🐷',
-  '🐻','🐯','🦁','🐮','🐙','🦋','🐬','🦄',
-  '🐧','🦜','🐢','🦔','🐳','🦀','🐝','🦭',
-  '🐥','🦩','🐡','🦦','🐠','🦌'
-];
+const EMOJIS=['🐱','🐶','🐰','🐼','🐨','🐸','🦊','🐷','🐻','🐯','🦁','🐮','🐙','🦋','🐬','🦄','🐧','🦜','🐢','🦔','🐳','🦀','🐝','🦭','🐥','🦩','🐡','🦦','🐠','🦌'];
 const BACKS=['🌟','⭐','✨','💫','🌈'];
+const DIFF_LABEL={8:'ง่าย',10:'กลาง',14:'ยาก',18:'โหด'};
 let numPairs=8,flipped=[],matched=[],flipCount=0,timerInterval=null,startTime=null,locked=false;
+let currentPlayer='',rankFilter='all';
+
+function loadHistory(){try{return JSON.parse(localStorage.getItem('matchHistory')||'[]')}catch(e){return[]}}
+function saveHistory(h){try{localStorage.setItem('matchHistory',JSON.stringify(h))}catch(e){}}
+
+function doLogin(){
+  const n=document.getElementById('nameInput').value.trim();
+  if(!n){document.getElementById('nameInput').style.borderColor='#e24b4a';return;}
+  currentPlayer=n;
+  showGame();
+}
+document.getElementById('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+function showGame(){setScreen('gameScreen');document.getElementById('playerName').textContent=currentPlayer;startGame();}
+function showLogin(){setScreen('loginScreen');}
+function showRanking(){setScreen('rankScreen');renderRanking();}
+function backFromRank(){setScreen(currentPlayer?'gameScreen':'loginScreen');}
+function setScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
 
 function setDiff(n,btn){
   numPairs=n;
@@ -94,16 +177,13 @@ function startGame(){
   document.getElementById('winBanner').classList.remove('show');
   document.getElementById('total').textContent=numPairs;
   document.getElementById('pairs').textContent='0';
-
   const cols=numPairs<=8?4:numPairs<=10?4:5;
   const grid=document.getElementById('grid');
   grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
-
   const chosen=EMOJIS.slice(0,numPairs);
   const deck=[...chosen,...chosen].sort(()=>Math.random()-.5);
-
   grid.innerHTML='';
-  deck.forEach((emoji)=>{
+  deck.forEach(emoji=>{
     const card=document.createElement('div');
     card.className='card';
     card.dataset.emoji=emoji;
@@ -115,16 +195,13 @@ function startGame(){
 }
 
 function flipCard(card){
-  if(locked||card.classList.contains('flipped')||card.classList.contains('matched')) return;
-  if(!startTime){
-    startTime=Date.now();
-    timerInterval=setInterval(updateTimer,500);
-  }
+  if(locked||card.classList.contains('flipped')||card.classList.contains('matched'))return;
+  if(!startTime){startTime=Date.now();timerInterval=setInterval(updateTimer,500);}
   card.classList.add('flipped');
   flipped.push(card);
   flipCount++;
   document.getElementById('flips').textContent=flipCount;
-  if(flipped.length===2) checkMatch();
+  if(flipped.length===2)checkMatch();
 }
 
 function checkMatch(){
@@ -134,19 +211,15 @@ function checkMatch(){
     a.classList.add('matched');b.classList.add('matched');
     matched.push(a,b);flipped=[];locked=false;
     document.getElementById('pairs').textContent=matched.length/2;
-    if(matched.length===numPairs*2) win();
+    if(matched.length===numPairs*2)win();
   } else {
     a.classList.add('wrong');b.classList.add('wrong');
-    setTimeout(()=>{
-      a.classList.remove('flipped','wrong');
-      b.classList.remove('flipped','wrong');
-      flipped=[];locked=false;
-    },900);
+    setTimeout(()=>{a.classList.remove('flipped','wrong');b.classList.remove('flipped','wrong');flipped=[];locked=false;},900);
   }
 }
 
 function updateTimer(){
-  if(!startTime) return;
+  if(!startTime)return;
   const s=Math.floor((Date.now()-startTime)/1000);
   document.getElementById('timer').textContent=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
 }
@@ -157,9 +230,42 @@ function win(){
   const timeStr=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
   document.getElementById('winSub').textContent=`${numPairs} คู่ · พลิก ${flipCount} ครั้ง · เวลา ${timeStr}`;
   document.getElementById('winBanner').classList.add('show');
+  const h=loadHistory();
+  h.push({name:currentPlayer,pairs:numPairs,flips:flipCount,secs:s,time:timeStr,date:new Date().toLocaleDateString('th-TH')});
+  saveHistory(h);
 }
 
-startGame();
+function setFilter(v,btn){
+  rankFilter=v;
+  document.querySelectorAll('.filt-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRanking();
+}
+
+function renderRanking(){
+  let h=loadHistory();
+  if(rankFilter!=='all')h=h.filter(r=>r.pairs===rankFilter);
+  h.sort((a,b)=>a.secs-b.secs||a.flips-b.flips);
+  const list=document.getElementById('rankList');
+  if(!h.length){list.innerHTML='<div class="empty-rank">ยังไม่มีประวัติ<br>เล่นแล้วมาดูกันนะ 🐾</div>';return;}
+  const medals=['🥇','🥈','🥉'];
+  list.innerHTML=h.slice(0,20).map((r,i)=>`
+    <div class="rank-row ${r.name===currentPlayer?'me':''}">
+      <div class="rank-num">${medals[i]||i+1}</div>
+      <div class="rank-name">${r.name}${r.name===currentPlayer?' 👈':''}</div>
+      <div class="rank-diff">${DIFF_LABEL[r.pairs]||r.pairs+' คู่'}</div>
+      <div class="rank-score">
+        <div class="rank-time">⏱ ${r.time}</div>
+        <div class="rank-flips">${r.flips} พลิก · ${r.date}</div>
+      </div>
+    </div>
+  `).join('');
+}
 </script>
 </body>
 </html>
+HTMLEOF
+echo "done"
+Output
+
+done
