@@ -72,6 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rank-time{font-size:13px;font-weight:600;color:#333}
 .rank-flips{font-size:11px;color:#aaa}
 .empty-rank{text-align:center;color:#bbb;font-size:14px;padding:2.5rem 0}
+.loading-rank{text-align:center;color:#d4537e;font-size:14px;padding:2rem 0}
 </style>
 </head>
 <body>
@@ -131,19 +132,68 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="filt-btn" onclick="setFilter(14,this)">ยาก</button>
       <button class="filt-btn" onclick="setFilter(18,this)">โหด</button>
     </div>
-    <div class="rank-list" id="rankList"></div>
+    <div class="rank-list" id="rankList"><div class="loading-rank">⏳ กำลังโหลด...</div></div>
   </div>
 
 </div>
 <script>
+const API_KEY = '$2a$10$BysxKuRdeJp8Lcr2Saaoe.nsxwXqVEoNrCoUDOX8iLjVVOsxNYtkW';
+const BIN_NAME = 'memory-match-ranking';
+let BIN_ID = localStorage.getItem('jsonbin_id') || null;
+
 const EMOJIS=['🐱','🐶','🐰','🐼','🐨','🐸','🦊','🐷','🐻','🐯','🦁','🐮','🐙','🦋','🐬','🦄','🐧','🦜','🐢','🦔','🐳','🦀','🐝','🦭','🐥','🦩','🐡','🦦','🐠','🦌'];
-const BACKS=['🌟','⭐','✨','💫','🌈'];
+const BACKS=['✨'];
 const DIFF_LABEL={8:'ง่าย',10:'กลาง',14:'ยาก',18:'โหด'};
 let numPairs=8,flipped=[],matched=[],flipCount=0,timerInterval=null,startTime=null,locked=false;
 let currentPlayer='',rankFilter='all';
 
-function loadHistory(){try{return JSON.parse(localStorage.getItem('matchHistory')||'[]')}catch(e){return[]}}
-function saveHistory(h){try{localStorage.setItem('matchHistory',JSON.stringify(h))}catch(e){}}
+// JSONBin API
+async function getHistory() {
+  try {
+    if (!BIN_ID) return [];
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: { 'X-Access-Key': API_KEY }
+    });
+    const data = await res.json();
+    return data.record || [];
+  } catch(e) { return []; }
+}
+
+async function saveRecord(record) {
+  try {
+    let history = await getHistory();
+    history.push(record);
+    // keep max 200 records
+    if (history.length > 200) history = history.slice(-200);
+
+    if (!BIN_ID) {
+      // สร้าง bin ใหม่
+      const res = await fetch('https://api.jsonbin.io/v3/b', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Key': API_KEY,
+          'X-Bin-Name': BIN_NAME,
+          'X-Bin-Private': 'false'
+        },
+        body: JSON.stringify(history)
+      });
+      const data = await res.json();
+      BIN_ID = data.metadata.id;
+      localStorage.setItem('jsonbin_id', BIN_ID);
+    } else {
+      // อัปเดต bin เดิม
+      await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Access-Key': API_KEY
+        },
+        body: JSON.stringify(history)
+      });
+    }
+  } catch(e) { console.error('save error', e); }
+}
 
 function doLogin(){
   const n=document.getElementById('nameInput').value.trim();
@@ -221,15 +271,20 @@ function updateTimer(){
   document.getElementById('timer').textContent=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
 }
 
-function win(){
+async function win(){
   clearInterval(timerInterval);
   const s=Math.floor((Date.now()-startTime)/1000);
   const timeStr=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
   document.getElementById('winSub').textContent=`${numPairs} คู่ · พลิก ${flipCount} ครั้ง · เวลา ${timeStr}`;
   document.getElementById('winBanner').classList.add('show');
-  const h=loadHistory();
-  h.push({name:currentPlayer,pairs:numPairs,flips:flipCount,secs:s,time:timeStr,date:new Date().toLocaleDateString('th-TH')});
-  saveHistory(h);
+  await saveRecord({
+    name: currentPlayer,
+    pairs: numPairs,
+    flips: flipCount,
+    secs: s,
+    time: timeStr,
+    date: new Date().toLocaleDateString('th-TH')
+  });
 }
 
 function setFilter(v,btn){
@@ -239,11 +294,12 @@ function setFilter(v,btn){
   renderRanking();
 }
 
-function renderRanking(){
-  let h=loadHistory();
-  if(rankFilter!=='all')h=h.filter(r=>r.pairs===rankFilter);
-  h.sort((a,b)=>a.secs-b.secs||a.flips-b.flips);
+async function renderRanking(){
   const list=document.getElementById('rankList');
+  list.innerHTML='<div class="loading-rank">⏳ กำลังโหลด...</div>';
+  let h = await getHistory();
+  if(rankFilter!=='all') h=h.filter(r=>r.pairs===rankFilter);
+  h.sort((a,b)=>a.secs-b.secs||a.flips-b.flips);
   if(!h.length){list.innerHTML='<div class="empty-rank">ยังไม่มีประวัติ<br>เล่นแล้วมาดูกันนะ 🐾</div>';return;}
   const medals=['🥇','🥈','🥉'];
   list.innerHTML=h.slice(0,20).map((r,i)=>`
